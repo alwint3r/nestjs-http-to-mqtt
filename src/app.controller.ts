@@ -12,6 +12,6 @@ export class AppController {
 
   @Post('/message')
   async postMessage(@Body() body: any) {
-    await this.mqttSink.emit('devices/message', body);
+    this.mqttSink.emit('devices/message', body);
   }
 }
