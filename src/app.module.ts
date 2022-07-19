@@ -1,22 +1,26 @@
 import { Module } from '@nestjs/common';
-import { ClientsModule } from '@nestjs/microservices';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ClientProxyFactory, MqttOptions } from '@nestjs/microservices';
 import { AppController } from './app.controller';
+import config from './config';
 import { CustomMqttClientProxy } from './custom-client.proxy';
 
 @Module({
-  imports: [
-    ClientsModule.register([
-      {
-        name: 'MQTT_SINK',
-        options: {
-          url: 'mqtt://localhost:1883',
-          clientId: 'NEST_MQTT_SINK',
-        },
-        customClass: CustomMqttClientProxy,
-      },
-    ]),
-  ],
+  imports: [ConfigModule.forRoot({ isGlobal: true, load: [config] })],
   controllers: [AppController],
-  providers: [],
+  providers: [
+    {
+      provide: 'MQTT_SINK',
+      useFactory: (configService: ConfigService) => {
+        const outboundMqtt =
+          configService.get<MqttOptions['options']>('outboundMqtt');
+        return ClientProxyFactory.create({
+          customClass: CustomMqttClientProxy,
+          options: outboundMqtt,
+        });
+      },
+      inject: [ConfigService],
+    },
+  ],
 })
 export class AppModule {}
